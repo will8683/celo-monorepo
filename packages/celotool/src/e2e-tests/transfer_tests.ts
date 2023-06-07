@@ -106,33 +106,38 @@ const warmStorageReadCostEIP2929 = 100
 //     * non those were modified before (as part of the same tx)
 //     * This means that both SSTORE (From and To) will cost:
 //         SstoreResetGasEIP2200 [5000] - ColdSloadCostEIP2929 [2100] => 2900
-// - No intrinsic gas involved BUT 630 gas charged for the amount of bytes sent
-const basicStableTokenTransferGasCost = 31253
+
+const opCodeCostStableTokenTransfer = 9_553 // TODO: check where this is coming from
+const basicStableTokenTransferGasCost =
+  opCodeCostStableTokenTransfer +
+  11 * coldSloadCostEIP2929 +
+  5 * coldAccountAccessCostEIP2929 +
+  2 * (sstoreResetGasEIP2200 - coldSloadCostEIP2929)
 
 // As the basicStableTokenTransferGasCost assumes that the transfer TO have funds, we should
-// only add the difference to calculate the gas (sstoreSetGasEIP2200 - 4200) => 15800
+// only add the difference to calculate the gas (sstoreSetGasEIP2200 - 2900) => 17100
 const emptyFundsBeforeForBasicCalc =
   sstoreSetGasEIP2200 - (sstoreResetGasEIP2200 - coldSloadCostEIP2929) // 17100
 
 // The StableToken transfer, paid with the same StableToken, preloads a lot of state
-// when the fee is subsctracted from the account, which generates that the basicStableTokenTransferGasCost
+// when the fee is subtracted from the account, which generates that the basicStableTokenTransferGasCost
 // cost less. The actual differences:
-// - SLOADS ColdSloadCostEIP2929 -> WarmStorageReadCostEIP2929 (-700 each)
+// - SLOADS ColdSloadCostEIP2929 -> WarmStorageReadCostEIP2929 (-2000 each)
 //   * 6 from the stableToken contract
 //   * 2 from the celoRegistry contract
 //   * 2 from the Freeze contract
 // - Account Check ( EXTCODEHASH | EXTCODESIZE | ext BALANCE)
-//          coldAccountAccessCostEIP2929 -> WarmStorageReadCostEIP2929 (-800 each)
+//          coldAccountAccessCostEIP2929 -> WarmStorageReadCostEIP2929 (-2500 each)
 //   * 3 from the stableToken contract
 //   * 1 from the celoRegistry contract
 //   * 1 from the Freeze contract
 // - The From account as already modified the state for that address
-//   * This will make that instead of SstoreResetGasEIP2200 [5000] - ColdSloadCostEIP2929 [800] => 4200
-//     will cost WarmStorageReadCostEIP2929 [100] (-4100)
+//   * This will make that instead of SstoreResetGasEIP2200 [5000] - ColdSloadCostEIP2929 [2100] => 2900
+//     will cost WarmStorageReadCostEIP2929 [100] (-2800)
 const savingGasStableTokenTransferPaidWithSameStable =
   (coldSloadCostEIP2929 - warmStorageReadCostEIP2929) * 10 +
   (coldAccountAccessCostEIP2929 - warmStorageReadCostEIP2929) * 5 +
-  (sstoreResetGasEIP2200 - coldSloadCostEIP2929 - warmStorageReadCostEIP2929) // 15100
+  (sstoreResetGasEIP2200 - coldSloadCostEIP2929 - warmStorageReadCostEIP2929) // 34300
 
 /** Helper to watch balance changes over accounts */
 interface BalanceWatcher {
