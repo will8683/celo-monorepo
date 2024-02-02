@@ -417,19 +417,37 @@ contract Validators is
    */
   function calculateEpochScore(uint256 uptime) public view returns (uint256) {
     require(uptime <= FixidityLib.fixed1().unwrap(), "Uptime cannot be larger than one");
-    uint256 numerator;
-    uint256 denominator;
     uptime = Math.min(uptime.add(downtimeGracePeriod), FixidityLib.fixed1().unwrap());
-    (numerator, denominator) = fractionMulExp(
-      FixidityLib.fixed1().unwrap(),
-      FixidityLib.fixed1().unwrap(),
-      uptime,
-      FixidityLib.fixed1().unwrap(),
-      validatorScoreParameters.exponent,
-      18
-    );
-    return FixidityLib.newFixedFraction(numerator, denominator).unwrap();
+
+    FixidityLib.Fraction memory uptimeFrac = FixidityLib.newFixed(uptime);
+    FixidityLib.Fraction memory tmp = uptimeFrac;
+    for (uint256 index = 0; index < validatorScoreParameters.exponent - 1; index++) {
+      tmp = FixidityLib.multiply(tmp, uptimeFrac);
+    }
+    return tmp.unwrap();
   }
+
+  /**
+   * @notice Calculates the validator score for an epoch from the uptime value for the epoch.
+   * @param uptime The Fixidity representation of the validator's uptime, between 0 and 1.
+   * @dev epoch_score = uptime ** exponent
+   * @return Fixidity representation of the epoch score between 0 and 1.
+   */
+  // function calculateEpochScore(uint256 uptime) public view returns (uint256) {
+  //   require(uptime <= FixidityLib.fixed1().unwrap(), "Uptime cannot be larger than one");
+  //   uint256 numerator;
+  //   uint256 denominator;
+  //   uptime = Math.min(uptime.add(downtimeGracePeriod), FixidityLib.fixed1().unwrap());
+  //   (numerator, denominator) = fractionMulExp(
+  //     FixidityLib.fixed1().unwrap(),
+  //     FixidityLib.fixed1().unwrap(),
+  //     uptime,
+  //     FixidityLib.fixed1().unwrap(),
+  //     validatorScoreParameters.exponent,
+  //     18
+  //   );
+  //   return FixidityLib.newFixedFraction(numerator, denominator).unwrap();
+  // }
 
   /**
    * @notice Calculates the aggregate score of a group for an epoch from individual uptimes.
