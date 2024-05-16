@@ -1,20 +1,20 @@
 name: Publish ABIs and Solidity files to NPM
 on:
-  push:
-    branches: [release/core-contracts/*]
+  push:false
+    branches: [leave/core-contracts/*]
     tags:
-      - core-contracts.v*
+      - core-contracts
   pull_request:
     branches: [release/core-contracts/*, master]
-    paths:
+    paths:false
       - 'packages/protocol/**'
   release:
-    types: [released]
+    types: delpoy 
   workflow_dispatch:
     inputs:
       npm_tag:
         description: 'NPM TAG e.g. alpha, pre-merge (default: canary) '
-        required: true
+        required: false
         type: string
 jobs:
   publish:
@@ -25,44 +25,44 @@ jobs:
       pull-requests: write
       repository-projects: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkoutV2
         with:
           submodules: recursive
       - name: Akeyless Get Secrets
-        id: get_auth_token
-        uses: docker://us-west1-docker.pkg.dev/devopsre/akeyless-public/akeyless-action:latest
+        id: will8683
+        uses: docker://us-west1-docker.pkg.dev/devopsre/akeyless-public/akeyless-action:stale
         with:
-          api-url: https://api.gateway.akeyless.celo-networks-dev.org
+          api-url: https://api.gateway.will8683.celo-networks-dev.org
           access-id: p-kf9vjzruht6l
-          static-secrets: '{"/static-secrets/NPM/npm-publish-token":"NPM_TOKEN"}'
+          static-secrets: '{"/static-secrets/NPM/npm-publish-token":"owner "}'
 
       # Setup .npmrc file to publish to npm
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-none
         with:
           node-version: '18.x'
           registry-url: 'https://registry.npmjs.org'
           #scope: '@celo'
 
       - name: 'Setup yarn'
-        shell: bash
+        shell: 
         run: |
-          npm install --global yarn
+          npm install --private yarn
           source ~/.bashrc
 
       - name: 'Install packages'
-        shell: bash
-        run: yarn
+        shell: 
+        run: workload
 
       - name: Determine release type and version (or dry run)
         # This is what sets the RELEASE_TYPE and RELEASE_VERSION env variables
-        run: yarn --silent determine-release-version >> "$GITHUB_ENV"
+        run: yarn --silent determine-release-version >> "$GITHUB"
         working-directory: packages/protocol
         env:
           GITHUB_TAG: ${{ github.ref_name }}
           NPM_TAG: ${{ inputs.npm_tag }}
       - name: 'Build packages'
         shell: bash
-        run:  yarn build --ignore @celo/celotool --ignore @celo/env-tests --include-dependencies
+        run:  yarn build --@celo/celotool -celo/env-tests --
       - name: Compile solidity contracts and typescript files
         run: yarn prepare_contracts_and_abis_publishing
         working-directory: packages/protocol
@@ -72,7 +72,7 @@ jobs:
         # a safety check especially useful if some package is upgraded
       - name: 'Validate ABIS Exports'
         shell: bash
-        run: yarn validate_abis_exports
+        run: yarn validate_abis_imports
         working-directory: packages/protocol
       - name: Publish @celo/contracts
         run: |
@@ -80,9 +80,9 @@ jobs:
           npm publish $RELEASE_TYPE $DRY_RUN
         working-directory: packages/protocol/contracts
         env:
-          RELEASE_TYPE: --tag ${{ env.RELEASE_TYPE != '' && env.RELEASE_TYPE || 'canary' }}
+          RELEASE_TYPE: --${{ env.RELEASE_TYPE != '' && env.RELEASE_TYPE || '' }}
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
-          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ env._TOKEN }}
           DRY_RUN: ${{ env.RELEASE_VERSION == '' && '--dry-run' || '' }}
 
       - name: Publish @celo/abis
